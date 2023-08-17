@@ -358,6 +358,7 @@ void SpinnakerCamera::grabImage(sensor_msgs::Image* image, const std::string& fr
       }
 
       // Set Image Time Stamp
+      // TODO 这里返回的时间戳是计算机时么？
       image->header.stamp.sec = image_ptr->GetTimeStamp() * 1e-9;
       image->header.stamp.nsec = image_ptr->GetTimeStamp();
 
@@ -378,6 +379,7 @@ void SpinnakerCamera::grabImage(sensor_msgs::Image* image, const std::string& fr
       Spinnaker::GenICam::gcstring bayer_bg_str = "BayerBG";
 
       // if(isColor_ && bayer_format != NONE)
+      // 这一段都是来判断图像是否有RGB以及图像格式的
       if (color_filter_ptr->GetCurrentEntry() != color_filter_ptr->GetEntryByName("None"))
       {
         if (bitsPerPixel == 16)
@@ -445,8 +447,13 @@ void SpinnakerCamera::grabImage(sensor_msgs::Image* image, const std::string& fr
         }
       }
 
+      // 图像分辨率
       int width = image_ptr->GetWidth();
       int height = image_ptr->GetHeight();
+      /**
+       * image stride（图像行跨度） 即内存中每行像素所占的控件，为了实现内存对齐
+       * 或者其他的原因，每行像素在内存中所占据的空间并不是图像的宽度。
+      */
       int stride = image_ptr->GetStride();
 
       // ROS_INFO_ONCE("\033[93m wxh: (%d, %d), stride: %d \n", width, height, stride);
@@ -481,6 +488,11 @@ void SpinnakerCamera::setDesiredCamera(const uint32_t& id)
 
 void SpinnakerCamera::ConfigureChunkData(const Spinnaker::GenApi::INodeMap& nodeMap)
 {
+  /**
+   * 允许相机将图像数据分成块（chunks），每个块包含有关图像的
+   * 一些附加信息，如时间戳、图像序号、相机参数等。这些附加信
+   * 息可以在每个数据块中添加，以便在数据传输期间与图像数据一起发送。
+  */
   ROS_INFO_STREAM("*** CONFIGURING CHUNK DATA ***");
   try
   {

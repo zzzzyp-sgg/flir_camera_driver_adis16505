@@ -28,6 +28,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 namespace spinnaker_camera_driver
 {
+/* 相机初始化 */
 void Camera::init()
 {
   Spinnaker::GenApi::CIntegerPtr height_max_ptr = node_map_->GetNode("HeightMax");
@@ -46,6 +47,7 @@ void Camera::init()
   //=====================================
   setMaxInt(node_map_, "DeviceLinkThroughputLimit");
 }
+/* 设置采集频率 */
 void Camera::setFrameRate(const float frame_rate)
 {
   // This enables the "AcquisitionFrameRateEnabled"
@@ -78,7 +80,7 @@ void Camera::setNewConfiguration(const SpinnakerConfig& config, const uint32_t& 
 
     // Set Trigger and Strobe Settings
     // NOTE: The trigger must be disabled (i.e. TriggerMode = "Off") in order to configure whether the source is
-    // software or hardware.
+    // software or hardware.(外部触发的话就先设为off)
     setProperty(node_map_, "TriggerMode", std::string("Off"));
     setProperty(node_map_, "TriggerSource", config.trigger_source);
     setProperty(node_map_, "TriggerSelector", config.trigger_selector);
@@ -215,6 +217,7 @@ void Camera::setImageControlFormats(const spinnaker_camera_driver::SpinnakerConf
   setProperty(node_map_, "OffsetY", 0);
 
   // Set Width/Height
+  // 设置的值有问题的时候(小于0或者大于最大值了)
   if (config.image_format_roi_width <= 0 || config.image_format_roi_width > width_max_)
     setProperty(node_map_, "Width", width_max_);
   else
@@ -327,6 +330,7 @@ bool Camera::readableProperty(const Spinnaker::GenICam::gcstring property_name)
 
 Camera::Camera(Spinnaker::GenApi::INodeMap* node_map)
 {
+  // 这里的node_map_可以简单理解为就是相机的配置设置
   node_map_ = node_map;
   init();
 }
