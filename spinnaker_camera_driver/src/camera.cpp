@@ -82,6 +82,7 @@ void Camera::setNewConfiguration(const SpinnakerConfig& config, const uint32_t& 
     // NOTE: The trigger must be disabled (i.e. TriggerMode = "Off") in order to configure whether the source is
     // software or hardware.(外部触发的话就先设为off)
     setProperty(node_map_, "TriggerMode", std::string("Off"));
+    // 这里难道要按顺序来？
     setProperty(node_map_, "TriggerSource", config.trigger_source);
     setProperty(node_map_, "TriggerSelector", config.trigger_selector);
     setProperty(node_map_, "TriggerActivation", config.trigger_activation_mode);

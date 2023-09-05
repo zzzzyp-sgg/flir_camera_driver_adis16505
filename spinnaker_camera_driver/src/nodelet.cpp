@@ -315,6 +315,7 @@ private:
     std::lock_guard<std::mutex> scopedLock(connect_mutex_);
 
     // Start up the dynamic_reconfigure service, note that this needs to stick around after this function ends
+    // 这里是定义了一个回调函数，用来进行动态参数配置服务
     srv_ = std::make_shared<dynamic_reconfigure::Server<spinnaker_camera_driver::SpinnakerConfig> >(pnh);
     dynamic_reconfigure::Server<spinnaker_camera_driver::SpinnakerConfig>::CallbackType f =
         boost::bind(&spinnaker_camera_driver::SpinnakerCameraNodelet::paramCallback, this, _1, _2);
@@ -341,6 +342,8 @@ private:
     // Set up a diagnosed publisher
     double desired_freq;
     std::string device_type;
+    // param name value defualt-value
+    // 当node里value值不存在的时候，就会给变量赋为default-value
     pnh.param<std::string>("device_type", device_type, "USB3");
     pnh.param<double>("desired_freq", desired_freq, 30.0);
     pnh.param<double>("min_freq", min_freq_, desired_freq);
@@ -724,6 +727,13 @@ private:
   spinnaker_camera_driver::SpinnakerConfig config_;
 };
 
+/**
+ * 
+ * PLUGINLIB_EXPORT_CLASS 是 ROS（Robot Operating System）
+ * 中的一个宏（macro），用于在创建插件时向 ROS 告知某个类应该
+ * 被注册为插件。插件是一种机制，允许在运行时动态加载和使用代
+ * 码，而无需重新编译整个程序。
+*/
 PLUGINLIB_EXPORT_CLASS(spinnaker_camera_driver::SpinnakerCameraNodelet,
                        nodelet::Nodelet)  // Needed for Nodelet declaration
 }  // namespace spinnaker_camera_driver

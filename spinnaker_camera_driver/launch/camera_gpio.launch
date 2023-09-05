@@ -28,7 +28,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
        If not specified, defaults to first camera found. -->
    <!-- 通过命令行设置参数值的时候，是通过 name:=value的格式设置的，如 frame_rate:=20 -->
   <arg name="camera_name"               default="camera" />
-  <arg name="camera_serial"             default="22497771" />
+  <arg name="camera_serial"             default="0" />
   <arg name="calibrated"                default="0" />
   <arg name="device_type"               default="USB3" /> <!-- USB3 or GigE -->
 
@@ -60,6 +60,21 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
         - BayerGB16        - BayerGB12Packed
         - BayerBG16        - BayerBG12Packed
   -->
+  <!-- 这里的话，如果选择外部触发，就要设置为 FrameStart -->
+  <arg name="TriggerSource"             default="Line0"/>
+  <!-- 同理，不过这里如果是软件触发就选择Software 硬触发就选择Line0 -->
+  <arg name="TriggerSelecter"           default="FrameStart"/>
+  <!-- TODO 选择Rising Edge? -->
+  <arg name="TriggerActivation"         default="RisingEdge"/>
+  <!-- 相机的触发模式设置 -->
+  <arg name="TriggerMode"               default="On"/>
+
+  <!-- 相机的输出设置 选择输出的时候就设置为Line1 -->
+  <arg name="LineSelector"               default="Line1"/>
+  <!-- 输出 选择输出的时候设置为Output -->
+  <arg name="LineMode"                   default="Output"/>
+  <!-- 输出源头 选择输出的时候设置为ExposureActive -->
+  <arg name="LineSource"                 default="ExposureActive"/>
 
   <group ns="$(arg camera_name)">
     <!-- Nodelet manager -->
@@ -76,6 +91,17 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
       <!-- Frame rate -->
       <param name="acquisition_frame_rate_enable"   value="$(arg control_frame_rate)" />
       <param name="acquisition_frame_rate"          value="$(arg frame_rate)" />
+
+      <!-- 采集模式 -->
+      <param name="trigger_source"                  value="$(arg TriggerSource)"/>
+      <param name="trigger_selector"                value="$(arg TriggerSelecter)"/>
+      <param name="trigger_activation"              value="$(arg TriggerActivation)"/>
+      <param name="enable_trigger"                  value="$(arg TriggerMode)"/>
+
+      <!-- 输出设置 -->
+      <param name="line_selector"                   value="$(arg LineSelector)"/>
+      <param name="line_mode"                       value="$(arg LineMode)"/>
+      <param name="line_source"                     value="$(arg LineSource)"/>
 
       <!-- Image Processing -->
       <param name="isp_enable"                      value="$(arg isp_enable)" />
