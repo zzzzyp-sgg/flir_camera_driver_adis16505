@@ -86,12 +86,14 @@ public:
   {
     std::lock_guard<std::mutex> scopedLock(connect_mutex_);
 
+    /* ROS诊断线程 */
     if (diagThread_)
     {
       diagThread_->interrupt();
       diagThread_->join();
     }
 
+    /* 读取和发布数据的线程 */
     if (pubThread_)
     {
       pubThread_->interrupt();
@@ -252,19 +254,24 @@ private:
   * This function needs to do the MINIMUM amount of work to get the nodelet running.  Nodelets should not call blocking
   * functions here.
   */
+  /// 虚函数，在启动本Nodelet节点时，自动调用
   void onInit()
   {
     // Get nodeHandles
-    ros::NodeHandle& nh = getMTNodeHandle();
-    ros::NodeHandle& pnh = getMTPrivateNodeHandle();
+    ros::NodeHandle& nh = getMTNodeHandle();          // 全局句柄
+    ros::NodeHandle& pnh = getMTPrivateNodeHandle();  // 私有句柄
 
     // Get a serial number through ros
     int serial = 0;
 
     XmlRpc::XmlRpcValue serial_xmlrpc;
-    pnh.getParam("serial", serial_xmlrpc);
+    pnh.getParam("serial", serial_xmlrpc);    // 从launch里加载参数，放到serial_xmlrpc里
     if (serial_xmlrpc.getType() == XmlRpc::XmlRpcValue::TypeInt)
     {
+      /**
+       * param也是从launch里加载参数值
+       * args: 参数名，加载到的变量名，默认值
+      */
       pnh.param<int>("serial", serial, 0);
     }
     else if (serial_xmlrpc.getType() == XmlRpc::XmlRpcValue::TypeString)
@@ -279,6 +286,7 @@ private:
       serial = 0;
     }
 
+    /* 相机serial，应该是指相机的设备号？ */
     std::string camera_serial_path;
     pnh.param<std::string>("camera_serial_path", camera_serial_path, "");
     NODELET_DEBUG_ONCE("Camera serial path %s", camera_serial_path.c_str());
@@ -298,7 +306,7 @@ private:
 
     spinnaker_.setDesiredCamera((uint32_t)serial);
 
-    // Get GigE camera parameters:
+    // Get GigE camera parameters:(网口相机的一些参数)
     pnh.param<int>("packet_size", packet_size_, 1400);
     pnh.param<bool>("auto_packet_size", auto_packet_size_, true);
     pnh.param<int>("packet_delay", packet_delay_, 4000);
@@ -316,23 +324,32 @@ private:
 
     // Start up the dynamic_reconfigure service, note that this needs to stick around after this function ends
     // 这里是定义了一个回调函数，用来进行动态参数配置服务
+    /**
+     * 因为 paramCallback 函数是一个成员函数，它需要访问当前对象的成员变量或其他成员函数。
+     * 通过将 this 作为参数传递给 boost::bind，
+     * 它将 paramCallback 函数与当前对象绑定在一起，以便在后续调用时可以正确访问当前对象的成员。
+     * */
     srv_ = std::make_shared<dynamic_reconfigure::Server<spinnaker_camera_driver::SpinnakerConfig> >(pnh);
     dynamic_reconfigure::Server<spinnaker_camera_driver::SpinnakerConfig>::CallbackType f =
         boost::bind(&spinnaker_camera_driver::SpinnakerCameraNodelet::paramCallback, this, _1, _2);
 
+    /// 所以其实就是动态设置参数的时候，会调用f这个回调函数
     srv_->setCallback(f);
 
     // queue size of ros publisher
+    /// 发布器（Publisher）的队列大小（queue size）指的是发布器在将消息发布到指定主题（Topic）时，可以在队列中缓存等待发布的消息的数量。
     int queue_size;
     pnh.param<int>("queue_size", queue_size, 5);
 
     // Start the camera info manager and attempt to load any configurations
+    /// ROS自带的管理相机的类
     std::stringstream cinfo_name;
     cinfo_name << serial;
     cinfo_.reset(new camera_info_manager::CameraInfoManager(nh, cinfo_name.str(), camera_info_url));
 
     // Publish topics using ImageTransport through camera_info_manager (gives cool things like compression)
     it_.reset(new image_transport::ImageTransport(nh));
+    /// advertise这里规定了发布的topic
     image_transport::SubscriberStatusCallback cb = boost::bind(&SpinnakerCameraNodelet::connectCb, this);
     it_pub_ = it_->advertiseCamera("image_raw", queue_size, cb, cb);
 
@@ -516,6 +533,7 @@ private:
           {
             NODELET_DEBUG("Connecting to camera.");
 
+            /// 这里去连接相机
             spinnaker_.connect();
 
             NODELET_DEBUG("Connected to camera.");
@@ -562,6 +580,7 @@ private:
           try
           {
             NODELET_DEBUG("Starting camera.");
+            /// 这里会开始采集
             spinnaker_.start();
             NODELET_DEBUG("Started camera.");
             NODELET_DEBUG("Attention: if nothing subscribes to the camera topic, the camera_info is not published "
@@ -585,6 +604,7 @@ private:
             wfov_camera_msgs::WFOVImagePtr wfov_image(new wfov_camera_msgs::WFOVImage);
             // Get the image from the camera library
             NODELET_DEBUG_ONCE("Starting a new grab from camera with serial {%d}.", spinnaker_.getSerial());
+            /// 这里是获取图像到ros message
             spinnaker_.grabImage(&wfov_image->image, frame_id_);
 
             // Set other values
@@ -596,6 +616,7 @@ private:
 
             // wfov_image->temperature = spinnaker_.getCameraTemperature();
 
+            /// 设置时间戳
             ros::Time time = ros::Time::now() + ros::Duration(config_.time_offset);
             wfov_image->header.stamp = time;
             wfov_image->image.header.stamp = time;
@@ -616,12 +637,14 @@ private:
             wfov_image->info = *ci_;
 
             // Publish the full message
+            /// 这里去publish
             pub_->publish(wfov_image);
 
             // Publish the message using standard image transport
             if (it_pub_.getNumSubscribers() > 0)
             {
               sensor_msgs::ImagePtr image(new sensor_msgs::Image(wfov_image->image));
+              /// 这里为啥要publish两边呢
               it_pub_.publish(image, ci_);
             }
           }

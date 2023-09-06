@@ -130,6 +130,7 @@ bool SpinnakerCamera::readableProperty(const Spinnaker::GenICam::gcstring proper
   }
 }
 
+/// 判断权限的
 Spinnaker::GenApi::CNodePtr SpinnakerCamera::readProperty(const Spinnaker::GenICam::gcstring property_name)
 {
   if (camera_)
@@ -166,6 +167,7 @@ void SpinnakerCamera::connect()
       // Connect to any camera (the first)
       try
       {
+        /// 所以单目的话不设置serial也可以，因为这里会默认读取第一个也就是唯一一个相机
         pCam_ = camList_.GetByIndex(0);
       }
       catch (const Spinnaker::Exception& e)
@@ -332,6 +334,11 @@ void SpinnakerCamera::stop()
   }
 }
 
+/**
+ * @brief 获取图像
+ * @param [inout] image     图像
+ * @param [in]    frame_id  相机的名称
+ */
 void SpinnakerCamera::grabImage(sensor_msgs::Image* image, const std::string& frame_id)
 {
   std::lock_guard<std::mutex> scopedLock(mutex_);
@@ -358,7 +365,6 @@ void SpinnakerCamera::grabImage(sensor_msgs::Image* image, const std::string& fr
       }
 
       // Set Image Time Stamp
-      // TODO 这里返回的时间戳是计算机时么？
       image->header.stamp.sec = image_ptr->GetTimeStamp() * 1e-9;
       image->header.stamp.nsec = image_ptr->GetTimeStamp();
 

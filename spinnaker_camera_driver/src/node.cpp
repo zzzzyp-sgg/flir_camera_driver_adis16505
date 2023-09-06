@@ -49,10 +49,22 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "spinnaker_camera_node");
 
   // This is code based nodelet loading, the preferred nodelet launching is done through roslaunch
+  /**
+   * Nodelet节点与传统的ros节点有点不一样，不一样在于，节点的源文件cpp里面并没有main函数。
+   * 其特点是：是一个类(Class)的形式。
+   * 所以，编译的时候，并不是编译成可执行文件，而是编译成库文件
+  */
   nodelet::Loader nodelet;
+  /**
+   * 创建了一个 nodelet::M_string 类型的对象 remap，它将用于存储ROS节点的重新映射信息。
+   * ROS节点可以通过重新映射来改变它们的话题、服务等名称，以适应不同的运行环境。
+  */
   nodelet::M_string remap(ros::names::getRemappings());
+  /* 存储节点的命令行参数 */
   nodelet::V_string nargv;
+  /* 获取节点名字 */
   std::string nodelet_name = ros::this_node::getName();
+  /* 加载节点 args: 名字 节点类型 重映射信息 命令行参数 */
   nodelet.load(nodelet_name, "spinnaker_camera_driver/SpinnakerCameraNodelet", remap, nargv);
 
   ros::spin();
